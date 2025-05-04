@@ -38,50 +38,34 @@ local homeTab = Window:CreateTab("Home", 93059210162475)
 local Section = homeTab:CreateSection("starting place")
 
 local Button = homeTab:CreateButton({
-   Name = "Buscar Itens",
+   Name = "Auto Collect Items",
    Callback = function()
-      task.spawn(function()
-         while true do
-            local tools = workspace:WaitForChild("Items"):GetChildren()
-            if #tools == 0 then break end
+      local Players = game:GetService("Players")
+      local LocalPlayer = Players.LocalPlayer
+      local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+      local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+      local TweenService = game:GetService("TweenService")
+      local VirtualInputManager = game:GetService("VirtualInputManager")
 
-            for _, tool in ipairs(tools) do
-               if tool:IsA("Tool") and tool:FindFirstChild("Handle") then
-                  local character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
-                  local hrp = character:WaitForChild("HumanoidRootPart")
+      local itemsFolder = workspace:FindFirstChild("Items")
+      if not itemsFolder then return end
 
-                  hrp.CFrame = hrp.CFrame * CFrame.new(0, -30, 0)
-                  task.wait(0.05)
+      local function moveToTarget(target)
+         local distance = (HumanoidRootPart.Position - target.Position).Magnitude
+         local duration = distance / 175
+         local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = target.CFrame})
+         tween:Play()
+         tween.Completed:Wait()
+      end
 
-                  local directionXZ = Vector3.new(tool.Handle.Position.X, hrp.Position.Y, tool.Handle.Position.Z) - hrp.Position
-                  directionXZ = directionXZ.Unit * 175
-                  local bv = Instance.new("BodyVelocity")
-                  bv.Velocity = directionXZ
-                  bv.MaxForce = Vector3.new(1, 0, 1) * 1e9
-                  bv.Parent = hrp
-                  task.wait(0.25)
-                  bv:Destroy()
-
-                  local directionY = Vector3.new(0, tool.Handle.Position.Y - hrp.Position.Y, 0).Unit * 175
-                  local bvY = Instance.new("BodyVelocity")
-                  bvY.Velocity = directionY
-                  bvY.MaxForce = Vector3.new(0, 1, 0) * 1e9
-                  bvY.Parent = hrp
-
-                  repeat task.wait() until (tool.Handle.Position - hrp.Position).Magnitude <= 3 or not tool.Parent
-                  bvY:Destroy()
-
-                  local item = game.Players.LocalPlayer.Backpack:FindFirstChild(tool.Name)
-                  if item and item:FindFirstChild("Handle") then
-                     local args = {
-                        item.Handle
-                     }
-                     game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Item"):FireServer(unpack(args))
-                  end
-               end
-            end
-            task.wait(0.5)
+      for _, tool in pairs(itemsFolder:GetChildren()) do
+         if tool:IsA("Tool") and tool:FindFirstChild("Handle") then
+            moveToTarget(tool.Handle)
+            task.wait(0.1)
+            VirtualInputManager:SendKeyEvent(true, "F", false, game)
+            VirtualInputManager:SendKeyEvent(false, "F", false, game)
+            task.wait(0.2)
          end
-      end)
-   end
+      end
+   end,
 })
