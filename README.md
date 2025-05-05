@@ -44,15 +44,27 @@ local Button = homeTab:CreateButton({
       local LocalPlayer = Players.LocalPlayer
       local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
       local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+      local Humanoid = Character:WaitForChild("Humanoid")
       local TweenService = game:GetService("TweenService")
       local VirtualInputManager = game:GetService("VirtualInputManager")
+
+      -- Anti-sentar (impede que o personagem fique sentado)
+      task.spawn(function()
+         while true do
+            if Humanoid.Sit then
+               task.wait(0.01)
+               Humanoid.Sit = false
+            end
+            task.wait()
+         end
+      end)
 
       local itemsFolder = workspace:FindFirstChild("Items")
       if not itemsFolder then return end
 
       local function moveToTarget(target)
          local distance = (HumanoidRootPart.Position - target.Position).Magnitude
-         local duration = distance / 175
+         local duration = distance / 225
          local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = target.CFrame})
          tween:Play()
          tween.Completed:Wait()
